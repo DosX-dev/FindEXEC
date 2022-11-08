@@ -1,4 +1,4 @@
-﻿' Coded by https://github.com/DosX-dev
+' Coded by https://github.com/DosX-dev
 ' Telegram: @DosX_Plus
 
 Imports System.Diagnostics.Eventing.Reader
@@ -8,6 +8,8 @@ Imports System.Text
 Module Module1
     Dim Dirs As Object() = "exec-sorted|exec-sorted\net|exec-sorted\net\VB_NET|exec-sorted\net\C#_or_IL".Split("|"c)
     Sub Main()
+        Console.WriteLine("EXE-Sorter: https://github.com/DosX-dev/EXE-Sorter")
+        Console.WriteLine($"OUTPUT FOLDER: \{Dirs(0)}\")
         For Each _CurDir In Dirs
             If Not Directory.Exists(_CurDir) Then Directory.CreateDirectory(_CurDir)
         Next
