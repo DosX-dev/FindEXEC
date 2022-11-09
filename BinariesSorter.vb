@@ -1,3 +1,5 @@
+' MADE WITH <3
+'
 ' Coded by https://github.com/DosX-dev
 ' Telegram: @DosX_Plus
 
@@ -6,13 +8,20 @@ Imports System.IO
 Imports System.Text
 
 Module Module1
-    Dim Dirs As Object() = "exec-sorted|exec-sorted\net|exec-sorted\net\VB_NET|exec-sorted\net\C#_or_IL".Split("|"c)
+    Dim Dirs As Object() = {"exec-sorted",
+                            "exec-sorted\NET",
+                            "exec-sorted\NET\VB_NET",
+                            "exec-sorted\NET\C#_or_IL",
+                            "exec-sorted\NET\VB_NET\DLL",
+                            "exec-sorted\NET\C#_or_IL\DLL"}
 
     Sub Main()
         ClrOut("[!] GitHub of FindEXEC: ", ConsoleColor.Black, ConsoleColor.Gray, False)
         ClrOut("https://github.com/DosX-dev/FindEXEC", ConsoleColor.Black, ConsoleColor.Blue, True)
 
         Console.WriteLine($"[!] Output directory: \{Dirs(0)}\")
+        Console.WriteLine()
+
         For Each _CurDir In Dirs
             If Not Directory.Exists(_CurDir) Then Directory.CreateDirectory(_CurDir)
         Next
@@ -28,24 +37,32 @@ Module Module1
                         Counter += 1
                         Dim FileName = Path.GetFileName(File1)
                         Dim Prefix = $"[{GlobalCounter}/{Files.Length}]"
-                        If IsNET(ExeData)(0) Then
-                            File.Copy(File1, $"exec-sorted\net\{IsNET(ExeData)(1)}\{FileName}")
-                            ProcessLog(Prefix, FileName, ".NET", IIf(IsNET(ExeData)(1) Is "VB_NET", "VB NET", "C# or IL"), True)
-
+                        Dim NET_Info = IsNET(ExeData)
+                        If NET_Info(0) Then
+                            If NET_Info(2) = "EXE" Then
+                                File.Copy(File1, $"exec-sorted\NET\{NET_Info(1)}\{FileName}")
+                            Else
+                                File.Copy(File1, $"exec-sorted\NET\{NET_Info(1)}\DLL\{FileName}")
+                            End If
+                            ProcessLog(Prefix, FileName, ".NET", IIf(NET_Info(1) Is "VB_NET", "VB NET", "C# or IL"), True, NET_Info(2))
                         Else
                             File.Copy(File1, $"exec-sorted\{FileName}")
-                            ProcessLog(Prefix, FileName, "NATIVE", "??", False)
+                            ProcessLog(Prefix, FileName, "NATIVE", "??", False, "BIN")
                         End If
                     End If
                 Catch Exc As Exception : End Try
             End If
         Next
-        ClrOut("Files sorted! Press any key to exit...", ConsoleColor.DarkGreen, ConsoleColor.White, True)
+        Console.WriteLine()
+        ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, False)
+        ClrOut(" Files sorted! Press any key to exit... ", ConsoleColor.DarkGreen, ConsoleColor.White, False)
+        ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, True)
         Console.ReadKey()
     End Sub
 
-    Sub ProcessLog(Prefix As String, FileName As String, Platform As String, Language As String, Detected As Boolean)
-        ClrOut($"{Prefix} ", ConsoleColor.Black, ConsoleColor.Gray, False)
+    Sub ProcessLog(Prefix As String, FileName As String, Platform As String, Language As String, Detected As Boolean, FileProjectType As String)
+        ClrOut($"{Prefix}", ConsoleColor.Black, ConsoleColor.DarkGray, False)
+        ClrOut($" [{FileProjectType}] ", ConsoleColor.Black, ConsoleColor.Gray, False)
         ClrOut($"{FileName}", ConsoleColor.Black, ConsoleColor.DarkGray, False)
         Console.Write(" => ")
         ClrOut($"{Language} ", ConsoleColor.Black, ConsoleColor.Yellow, False)
@@ -81,21 +98,31 @@ Module Module1
 
     Function IsNET(ExeData) As Object()
         Dim InputData = Encoding.UTF8.GetString(ExeData).ToLower()
-        Dim TextSigns = "stathreadattribute,system.,#guid,#blob,#strings"
+        Dim TextSigns = "system.,#guid,#blob,#strings"
+        Dim FileProjectType = "BIN"
+
         For Each Sign In TextSigns.Split(","c)
             If Not InputData.Contains(Sign) Then
                 Return {False, "NATIVE"}
             End If
         Next
-        If IndexOf(ExeData, ByteStr("{NUL}_CorExeMain{NUL}mscoree.dll{NUL}")) Then
-            If IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic{NUL}")) AndAlso
-               IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic.CompilerServices{NUL}")) Then
-                Return {True, "VB_NET"}
-            Else
-                Return {True, "C#_or_IL"}
+
+        '_CorExeMain - EXE; _CorDllMain - DLL
+        If IndexOf(ExeData, ByteStr("{NUL}mscoree.dll{NUL}")) Then
+
+            If IndexOf(ExeData, ByteStr("{NUL}{NUL}_CorExeMain{NUL}")) Then FileProjectType = "EXE" ' .NET exe
+            If IndexOf(ExeData, ByteStr("{NUL}{NUL}_CorDllMain{NUL}")) Then FileProjectType = "DLL" ' .NET dll
+
+            If Not FileProjectType = "BIN" Then
+                If IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic{NUL}")) AndAlso
+                   IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic.CompilerServices{NUL}")) Then
+                    Return {True, "VB_NET", FileProjectType}
+                Else
+                    Return {True, "C#_or_IL", FileProjectType}
+                End If
             End If
         End If
-        Return {False, "NATIVE"}
+        Return {False, "NATIVE", FileProjectType}
     End Function
 
 
@@ -152,3 +179,8 @@ Module Module1
         Return 0
     End Function
 End Module
+
+' MADE WITH <3
+'
+' Coded by https://github.com/DosX-dev
+' Telegram: @DosX_Plus
