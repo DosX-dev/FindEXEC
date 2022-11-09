@@ -1,4 +1,4 @@
-' MADE WITH <3
+' MADE WITH <3 BY DOSX
 ' Coded by https://github.com/DosX-dev
 ' Telegram: @DosX_Plus
 
@@ -110,7 +110,7 @@ Module Module1
         If IndexOf(ExeData, ByteStr("{NUL}mscoree")) OrElse
            IndexOf(ExeData, ByteStr("{NUL}mscorlib")) Then
 
-            If IndexOf(ExeData, ByteStr("{NUL}_CorExe{NUL}")) Then FileProjectType = "EXE" ' .NET exe
+            If IndexOf(ExeData, ByteStr("{NUL}_CorExe")) Then FileProjectType = "EXE" ' .NET exe
             If IndexOf(ExeData, ByteStr("{NUL}_CorDllMain{NUL}")) Then FileProjectType = "DLL" ' .NET dll
 
             If Not FileProjectType = "BIN" Then
@@ -180,6 +180,6 @@ Module Module1
     End Function
 End Module
 
-' MADE WITH <3
+' MADE WITH <3 BY DOSX
 ' Coded by https://github.com/DosX-dev
 ' Telegram: @DosX_Plus
