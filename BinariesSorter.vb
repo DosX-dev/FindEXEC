@@ -107,9 +107,10 @@ Module Module1
         Next
 
         '_CorExeMain - EXE; _CorDllMain - DLL
-        If IndexOf(ExeData, ByteStr("{NUL}mscoree.dll{NUL}")) Then
+        If IndexOf(ExeData, ByteStr("{NUL}mscoree")) OrElse
+           IndexOf(ExeData, ByteStr("{NUL}mscorlib")) Then
 
-            If IndexOf(ExeData, ByteStr("{NUL}_CorExeMain{NUL}")) Then FileProjectType = "EXE" ' .NET exe
+            If IndexOf(ExeData, ByteStr("{NUL}_CorExe{NUL}")) Then FileProjectType = "EXE" ' .NET exe
             If IndexOf(ExeData, ByteStr("{NUL}_CorDllMain{NUL}")) Then FileProjectType = "DLL" ' .NET dll
 
             If Not FileProjectType = "BIN" Then
