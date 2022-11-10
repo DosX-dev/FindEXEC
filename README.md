@@ -13,4 +13,4 @@ Once launched, the script will search the current folder for binary files and ca
 
 ![Screenshot](https://raw.githubusercontent.com/DosX-dev/FindEXEC/main/screenshot.jpg)
 
-![Screenshot](https://raw.githubusercontent.com/DosX-dev/FindEXEC/main/screenshot2.jpg)
+![Screenshot](https://raw.githubusercontent.com/DosX-dev/FindEXEC/main/4.0.jpg)
