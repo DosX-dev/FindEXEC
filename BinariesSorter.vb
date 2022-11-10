@@ -4,6 +4,7 @@
 
 Imports System.Diagnostics.Eventing.Reader
 Imports System.IO
+Imports System.Security.Cryptography
 Imports System.Text
 
 Module Module1
@@ -32,6 +33,9 @@ Module Module1
             If Not File1 = Process.GetCurrentProcess().MainModule.FileName Then
                 Dim ExeData = File.ReadAllBytes(File1)
                 Try
+
+
+
                     If IsBinaryEXE(ExeData) Then
                         Counter += 1
                         Dim FileName = Path.GetFileName(File1)
@@ -45,8 +49,9 @@ Module Module1
                             End If
                             ProcessLog(Prefix, FileName, ".NET", IIf(NET_Info(1) Is "VB_NET", "VB NET", "C# or IL"), True, NET_Info(2))
                         Else
-                            File.Copy(File1, $"exec-sorted\{FileName}")
-                            ProcessLog(Prefix, FileName, "NATIVE", "??", False, "BIN")
+                            Dim NativeInfo = GuessNativeRuntime(ExeData)
+                            File.Copy(File1, $"exec-sorted\{IIf(NativeInfo IsNot "??", NativeInfo, "Unknown")}_{FileName}")
+                            ProcessLog(Prefix, FileName, "NATIVE", NativeInfo, False, NET_Info(2))
                         End If
                     End If
                 Catch Exc As Exception : End Try
@@ -78,15 +83,15 @@ Module Module1
     End Sub
     Function IsBinaryEXE(ExeData)
         Dim InputData = Encoding.UTF8.GetString(ExeData).ToLower()
-        Dim TextSigns = ".dll,pe,�!�l"
+        Dim TextSigns = ".dll,pe" ' OLD "�!�l"
         For Each Sign In TextSigns.Split(","c)
             If Not InputData.Contains(Sign) Then
                 Return False
             End If
         Next
 
-        If IndexOf(ExeData, ByteStr("{NUL}")) Then
-            If InputData.Length > 2 Then
+        If IndexOf(ExeData, ByteStr("{NUL}{NUL}")) Then
+            If InputData.Length > 170 Then
                 If InputData.Substring(0, 2) = "mz" Then
                     Return True
                 End If
@@ -102,16 +107,17 @@ Module Module1
 
         For Each Sign In TextSigns.Split(","c)
             If Not InputData.Contains(Sign) Then
-                Return {False, "NATIVE"}
+                Return {False, "NATIVE", FileProjectType}
             End If
         Next
 
         '_CorExeMain - EXE; _CorDllMain - DLL
-        If IndexOf(ExeData, ByteStr("{NUL}mscoree")) OrElse
-           IndexOf(ExeData, ByteStr("{NUL}mscorlib")) Then
+        Dim BinToLower = ToLowerInBinary(ExeData)
+        If IndexOf(BinToLower, ByteStr("{NUL}mscoree.dll")) OrElse
+           IndexOf(BinToLower, ByteStr("{NUL}mscorlib.dll")) Then
 
-            If IndexOf(ExeData, ByteStr("{NUL}_CorExe")) Then FileProjectType = "EXE" ' .NET exe
             If IndexOf(ExeData, ByteStr("{NUL}_CorDllMain{NUL}")) Then FileProjectType = "DLL" ' .NET dll
+            If IndexOf(ExeData, ByteStr("{NUL}_CorExe")) Then FileProjectType = "EXE" ' .NET exe
 
             If Not FileProjectType = "BIN" Then
                 If IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic{NUL}")) AndAlso
@@ -125,6 +131,35 @@ Module Module1
         Return {False, "NATIVE", FileProjectType}
     End Function
 
+    Function ToLowerInBinary(ExeData) ' Change registry of all chars in Byte() to lower
+        Dim ChangedData = ExeData
+        For Each CurStr In "QWERTYUIOPASDFGHJKLZXCVBNM"
+            ChangedData = ReplaceBytes(ChangedData, ByteStr(CurStr.ToString), ByteStr(CurStr.ToString.ToLower))
+        Next
+        Return ChangedData
+    End Function
+    Public Detects = {"msvcrt.dll=C++", ' Microsoft C++ Runtime
+                      "libgcj-13.dll=C++", ' GNU GCC (C++)
+                      "crtdll.dll=C", ' Microsoft C Runtime
+                      "upx0{NUL}{NUL}=UPX-Packed"} ' UPX Packer
+
+    Function GuessNativeRuntime(ExeData)
+        Try
+            Dim AssemblyData = ToLowerInBinary(ExeData)
+            For Each SearchForSigns In Detects
+                Dim SignAndRuntime = SearchForSigns.Split("=")
+                Dim Sign = SignAndRuntime(0)
+                Dim Runtime = SignAndRuntime(1)
+                If IndexOf(AssemblyData, ByteStr($"{{NUL}}{Sign}{{NUL}}")) Then
+                    Return Runtime
+                End If
+            Next
+            Return "??"
+        Catch ex As Exception
+            MsgBox(ex.Message)
+        End Try
+
+    End Function
 
     Function ByteStr(InputStr As String) As Byte() ' {NUL}  ==>  \d{00}
         Return ReplaceBytes(Encoding.ASCII.GetBytes(InputStr), Encoding.ASCII.GetBytes("{NUL}"), {CByte(0)})
