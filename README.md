@@ -14,5 +14,3 @@ Download link - https://github.com/DosX-dev/FindEXEC/releases/tag/Windows
 ![Screenshot](https://raw.githubusercontent.com/DosX-dev/FindEXEC/main/pic.jpg)
 
 ![Screenshot](https://raw.githubusercontent.com/DosX-dev/FindEXEC/main/screenshot.jpg)
-
-![Screenshot](https://raw.githubusercontent.com/DosX-dev/FindEXEC/main/4.0.jpg)
