@@ -9,6 +9,8 @@ Once launched, the script will search the current folder for binary files and ca
 
 **Did you like _FindEXEC_ ? Put a _star_ 🌟!  :)**
 
+Download link - https://github.com/DosX-dev/FindEXEC/releases/tag/Windows
+
 ![Screenshot](https://raw.githubusercontent.com/DosX-dev/FindEXEC/main/pic.jpg)
 
 ![Screenshot](https://raw.githubusercontent.com/DosX-dev/FindEXEC/main/screenshot.jpg)
