@@ -8,18 +8,16 @@ Imports System.Security.Cryptography
 Imports System.Text
 
 Module Module1
-    Dim Dirs As Object() = {"exec-sorted",
-                            "exec-sorted\NET",
-                            "exec-sorted\NET\VB_NET",
-                            "exec-sorted\NET\C#_or_IL",
-                            "exec-sorted\NET\VB_NET\DLL",
-                            "exec-sorted\NET\C#_or_IL\DLL"}
-
+    Dim Dirs As Object() = {"exec-sorted\NET\VB_NET\DLL",
+                            "exec-sorted\NET\C#_or_IL\DLL",
+                            "exec-sorted\NET\Delphi\DLL",
+                            "exec-sorted\NET\JScript\DLL"}
+    Dim ConsoleTitleDefault = Console.Title
     Sub Main()
         ClrOut("[!] GitHub of FindEXEC: ", ConsoleColor.Black, ConsoleColor.Gray, False)
         ClrOut("https://github.com/DosX-dev/FindEXEC", ConsoleColor.Black, ConsoleColor.Blue, True)
 
-        Console.WriteLine($"[!] Output directory: \{Dirs(0)}\")
+        Console.WriteLine($"[!] Output directory: \exec-sorted\")
         Console.WriteLine()
 
         For Each _CurDir In Dirs
@@ -28,39 +26,50 @@ Module Module1
         Dim Counter = 0
         Dim GlobalCounter = 0
         Dim Files = Directory.GetFiles(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName))
-        For Each File1 In Files
+        For Each CurFile In Files
             GlobalCounter += 1
-            If Not File1 = Process.GetCurrentProcess().MainModule.FileName Then
-                Dim ExeData = File.ReadAllBytes(File1)
+            If Not CurFile = Process.GetCurrentProcess().MainModule.FileName Then
+                Dim ExeData = File.ReadAllBytes(CurFile)
                 Try
-
-
-
                     If IsBinaryEXE(ExeData) Then
                         Counter += 1
-                        Dim FileName = Path.GetFileName(File1)
-                        Dim Prefix = $"[{GlobalCounter}/{Files.Length}]"
+                        Dim FileName = Path.GetFileName(CurFile)
+                        Dim Prefix = $"[{Math.Round(GlobalCounter / Files.Length * 100)}%][{GlobalCounter}/{Files.Length}]"
+                        Console.Title = $"{Prefix} FindEXEC [{FileName}]"
                         Dim NET_Info = IsNET(ExeData)
                         If NET_Info(0) Then
                             If NET_Info(2) = "EXE" Then
-                                File.Copy(File1, $"exec-sorted\NET\{NET_Info(1)}\{FileName}")
+                                Dim PathToSave = $"exec-sorted\NET\{NET_Info(1)}\{FileName}"
+                                If Not File.Exists(PathToSave) Then
+                                    File.Copy(CurFile, PathToSave)
+                                End If
                             Else
-                                File.Copy(File1, $"exec-sorted\NET\{NET_Info(1)}\DLL\{FileName}")
+                                Dim PathToSave = $"exec-sorted\NET\{NET_Info(1)}\DLL\{FileName}"
+                                If Not File.Exists(PathToSave) Then
+                                    File.Copy(CurFile, PathToSave)
+                                End If
                             End If
-                            ProcessLog(Prefix, FileName, ".NET", IIf(NET_Info(1) Is "VB_NET", "VB NET", "C# or IL"), True, NET_Info(2))
+                            ProcessLog(Prefix, FileName, ".NET", NET_Info(1).Replace("_", " "), True, NET_Info(2))
                         Else
                             Dim NativeInfo = GuessNativeRuntime(ExeData)
-                            File.Copy(File1, $"exec-sorted\{IIf(NativeInfo IsNot "??", NativeInfo, "Unknown")}_{FileName}")
+                            Dim PathToSave = $"exec-sorted\{IIf(NativeInfo IsNot "??", NativeInfo, "Unknown")}_{FileName}"
+                            If Not File.Exists(PathToSave) Then
+                                File.Copy(CurFile, PathToSave)
+                            End If
                             ProcessLog(Prefix, FileName, "NATIVE", NativeInfo, False, NET_Info(2))
                         End If
                     End If
-                Catch Exc As Exception : End Try
+                Catch Exc As Exception
+                    MsgBox(Exc.Message)
+                End Try
             End If
         Next
+        Console.Title = ConsoleTitleDefault
         Console.WriteLine()
         ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, False)
         ClrOut(" Files sorted! Press any key to exit... ", ConsoleColor.DarkGreen, ConsoleColor.White, False)
         ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, True)
+        Threading.Thread.Sleep(1500)
         Console.ReadKey()
     End Sub
 
@@ -123,6 +132,11 @@ Module Module1
                 If IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic{NUL}")) AndAlso
                    IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic.CompilerServices{NUL}")) Then
                     Return {True, "VB_NET", FileProjectType}
+                ElseIf IndexOf(ExeData, ByteStr("{NUL}Borland.")) Then
+                    Return {True, "Delphi", FileProjectType}
+                ElseIf IndexOf(ExeData, ByteStr("{NUL}Microsoft.JScript{NUL}")) AndAlso
+                       IndexOf(ExeData, ByteStr("{NUL}Microsoft.JScript.Vsa{NUL}")) Then
+                    Return {True, "JScript", FileProjectType}
                 Else
                     Return {True, "C#_or_IL", FileProjectType}
                 End If
@@ -130,18 +144,48 @@ Module Module1
         End If
         Return {False, "NATIVE", FileProjectType}
     End Function
-
+    Public Detects = {"msvcp60.dll=С++ (MS 2000-2001)", ' Microsoft C++ Runtime
+                      "msvcp70.dll=С++ (MS 2002)",
+                      "msvcp71.dll=C++ (MS 2003)",
+                      "msvcp80.dll=C++ (MS 2005)",
+                      "msvcp90.dll=C++ (MS 2008)",
+                      "msvcp100.dll=C++ (MS 2010)",
+                      "msvcp110.dll=C++ (MS 2012)",
+                      "msvcp120.dll=C++ (MS 2013)",
+                      "msvcp130.dll=C++ (MS 2013)",
+                      "msvcp140.dll=C++ (MS 2015-2017)",
+                      "msvcp150.dll=C++ (MS 2017-2018)",
+                      "msvcp160.dll=C++ (MS 2019)",
+                      "msvcrt.dll=C++",
+                      "vcruntime140.dll=C++",
+                      "libgcj-13.dll=C++ (GCC)", ' GNU GCC (C++)
+                      "libgcc_s_dw2-1.dll=C++ (GCC)",
+                      "msys-1.0.dll=C++ (GCC)",
+                      "libgcj.dll=C++ (GCC)",
+                      "cyggcj.dll=C++ (GCC)",
+                      "msvcirt.dll=C++", ' Microsoft C++ Library (<iostream.h>)
+                      "crtdll.dll=C", ' Microsoft C Runtime
+                      "vb40032.dll=VB4", ' Microsoft Visual Basic 4
+                      "msvbvm50.dll=VB5", ' Microsoft Visual Basic 5
+                      "msvbvm60.dll=VB6", ' Microsoft Visual Basic 6
+                      "upx0{NUL}{NUL}=UPX-Packed"} ' UPX Packer
     Function ToLowerInBinary(ExeData) ' Change registry of all chars in Byte() to lower
         Dim ChangedData = ExeData
         For Each CurStr In "QWERTYUIOPASDFGHJKLZXCVBNM"
-            ChangedData = ReplaceBytes(ChangedData, ByteStr(CurStr.ToString), ByteStr(CurStr.ToString.ToLower))
+            ChangedData = ReplaceBytes(ChangedData, ByteStr(CurStr.ToString), ByteStr(CustomToLower(CurStr.ToString)))
         Next
         Return ChangedData
     End Function
-    Public Detects = {"msvcrt.dll=C++", ' Microsoft C++ Runtime
-                      "libgcj-13.dll=C++", ' GNU GCC (C++)
-                      "crtdll.dll=C", ' Microsoft C Runtime
-                      "upx0{NUL}{NUL}=UPX-Packed"} ' UPX Packer
+
+    Function CustomToLower(InputData) ' Analog of ToLower() but faster (Only for ENG)
+        Dim Result = InputData
+        Dim UPP = "QWERTYUIOPASDFGHJKLZXCVBNM"
+        Dim DWN = "qwertyuiopasdfghjklzxcvbnm"
+        For IndexToReplace = 0 To (UPP.Length - 1)
+            Result = Result.Replace(UPP(IndexToReplace), DWN(IndexToReplace))
+        Next
+        Return Result
+    End Function
 
     Function GuessNativeRuntime(ExeData)
         Try
