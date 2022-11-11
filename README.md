@@ -7,7 +7,7 @@
 Put this script in a folder with lots of .EXE/.DLL files and it will sort them into categories: NET / Native.
 Once launched, the script will search the current folder for binary files and categorize them.
 
-Currently supports **C++, C, VB NET, C#, JScript, VB4-6** and detects **UPX**
+Currently supports: **[VB NET, C#, JScript, Delphi] (NET)** | **[C++, C, VB4-6] (NATIVE)** and detects **UPX**
 
 **Did you like _FindEXEC_ ? Put a _star_ 🌟!  :)**
 
