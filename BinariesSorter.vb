@@ -13,11 +13,21 @@ Module Module1
                             "exec-sorted\NET\Delphi\DLL",
                             "exec-sorted\NET\JScript\DLL"}
     Dim ConsoleTitleDefault = Console.Title
+
     Sub Main()
-        ClrOut("[!] GitHub of FindEXEC: ", ConsoleColor.Black, ConsoleColor.Gray, False)
+        ClrOut("
+                                  _ 
+  _______    _                   |_|   _______   _       _   _______   ________
+ |_|_|_|_|  |_|   ______      ___|_|  |_|_|_|_| |_|_   _|_| |_|_|_|_| /_|_|_|_/
+ |_|____     _   |_|_|_|\   _/_|_|_|  |_|____     |_|_|_|   |_|____   |_|
+ |_|_|_|    |_|  |_|   |_| |_|   |_|  |_|_|_|      _|_|_    |_|_|_|   |_|
+ |_|        |_|  |_|   |_| |_|___|_|  |_|______  _|_| |_|_  |_|______ |_|_____
+ |_|        |_|  |_|   |_|   \_|_|_|  |_|_|_|_| |_|     |_| |_|_|_|_| \_|_|_|_\
+", ConsoleColor.Black, ConsoleColor.Cyan, True)
+        ClrOut(" [?] GitHub of FindEXEC: ", ConsoleColor.Black, ConsoleColor.Gray, False)
         ClrOut("https://github.com/DosX-dev/FindEXEC", ConsoleColor.Black, ConsoleColor.Blue, True)
 
-        Console.WriteLine($"[!] Output directory: \exec-sorted\")
+        Console.WriteLine($" [!] Output directory: \exec-sorted\")
         Console.WriteLine()
 
         For Each _CurDir In Dirs
@@ -34,8 +44,16 @@ Module Module1
                     If IsBinaryEXE(ExeData) Then
                         Counter += 1
                         Dim FileName = Path.GetFileName(CurFile)
-                        Dim Prefix = $"[{Math.Round(GlobalCounter / Files.Length * 100)}%][{GlobalCounter}/{Files.Length}]"
-                        Console.Title = $"{Prefix} FindEXEC [{FileName}]"
+                        Dim Prefix = $"[{Int(GlobalCounter / Files.Length * 100)}%][{GlobalCounter}/{Files.Length}]"
+
+                        Dim FileSize = {ExeData.Length \ 1024, "Kb"}
+
+                        If FileSize(0) > 1023 Then
+                            FileSize(0) \= 1024
+                            FileSize(1) = "Mb"
+                        End If
+
+                        Console.Title = $"{Prefix} FindEXEC [{FileName}] [{FileSize(0)} {FileSize(1)}]"
                         Dim NET_Info = IsNET(ExeData)
                         If NET_Info(0) Then
                             If NET_Info(2) = "EXE" Then
@@ -144,31 +162,22 @@ Module Module1
         End If
         Return {False, "NATIVE", FileProjectType}
     End Function
-    Public Detects = {"msvcp60.dll=С++ (MS 2000-2001)", ' Microsoft C++ Runtime
-                      "msvcp70.dll=С++ (MS 2002)",
-                      "msvcp71.dll=C++ (MS 2003)",
-                      "msvcp80.dll=C++ (MS 2005)",
-                      "msvcp90.dll=C++ (MS 2008)",
-                      "msvcp100.dll=C++ (MS 2010)",
-                      "msvcp110.dll=C++ (MS 2012)",
-                      "msvcp120.dll=C++ (MS 2013)",
-                      "msvcp130.dll=C++ (MS 2013)",
-                      "msvcp140.dll=C++ (MS 2015-2017)",
-                      "msvcp150.dll=C++ (MS 2017-2018)",
-                      "msvcp160.dll=C++ (MS 2019)",
-                      "msvcrt.dll=C++",
-                      "vcruntime140.dll=C++",
-                      "libgcj-13.dll=C++ (GCC)", ' GNU GCC (C++)
-                      "libgcc_s_dw2-1.dll=C++ (GCC)",
-                      "msys-1.0.dll=C++ (GCC)",
-                      "libgcj.dll=C++ (GCC)",
-                      "cyggcj.dll=C++ (GCC)",
+    Public Detects = {"msvcp50.dll=C++ (MS 1998)", "msvcp60.dll=С++ (MS 2000-2001)", ' Microsoft C++ Runtime
+                      "msvcp70.dll=С++ (MS 2002)", "msvcp71.dll=C++ (MS 2003)",
+                      "msvcp80.dll=C++ (MS 2005)", "msvcp90.dll=C++ (MS 2008)",
+                      "msvcp100.dll=C++ (MS 2010)", "msvcp110.dll=C++ (MS 2012)",
+                      "msvcp120.dll=C++ (MS 2013)", "msvcp130.dll=C++ (MS 2013)",
+                      "msvcp140.dll=C++ (MS 2015-2017)", "msvcp150.dll=C++ (MS 2017-2018)",
+                      "msvcp160.dll=C++ (MS 2019)", "msvcrt.dll=C++", "vcruntime140.dll=C++",
+                      "libgcj-13.dll=C++ (GCC)", "libgcc_s_dw2-1.dll=C++ (GCC)", ' GNU GCC (C++)
+                      "msys-1.0.dll=C++ (GCC)", "libgcj.dll=C++ (GCC)", "cyggcj.dll=C++ (GCC)",
                       "msvcirt.dll=C++", ' Microsoft C++ Library (<iostream.h>)
                       "crtdll.dll=C", ' Microsoft C Runtime
                       "vb40032.dll=VB4", ' Microsoft Visual Basic 4
                       "msvbvm50.dll=VB5", ' Microsoft Visual Basic 5
                       "msvbvm60.dll=VB6", ' Microsoft Visual Basic 6
-                      "upx0{NUL}{NUL}=UPX-Packed"} ' UPX Packer
+                      "upx0{NUL}{NUL}=UPX-Packed", ' UPX Packer
+                      "{NUL}.mpress1=MPRESS-Packed"} ' MSPRESS native packer
     Function ToLowerInBinary(ExeData) ' Change registry of all chars in Byte() to lower
         Dim ChangedData = ExeData
         For Each CurStr In "QWERTYUIOPASDFGHJKLZXCVBNM"
