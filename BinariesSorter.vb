@@ -6,6 +6,7 @@ Imports System.Diagnostics.Eventing.Reader
 Imports System.IO
 Imports System.Security.Cryptography
 Imports System.Text
+Imports System.Threading
 
 Module Module1
     Dim Dirs As Object() = {"exec-sorted\NET\VB_NET\DLL",
@@ -15,6 +16,10 @@ Module Module1
     Dim ConsoleTitleDefault = Console.Title
 
     Sub Main()
+        Dim _Main = New Thread(AddressOf LetsWork) : _Main.Start()
+    End Sub
+
+    Sub LetsWork()
         ClrOut("
                                   _ 
   _______    _                   |_|   _______   _       _   _______   ________
@@ -87,7 +92,6 @@ Module Module1
         ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, False)
         ClrOut(" Files sorted! Press any key to exit... ", ConsoleColor.DarkGreen, ConsoleColor.White, False)
         ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, True)
-        Threading.Thread.Sleep(1500)
         Console.ReadKey()
     End Sub
 
