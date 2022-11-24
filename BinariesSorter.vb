@@ -110,7 +110,7 @@ Module Module1
         Else
             Console.Write(Text)
         End If
-        Console.BackgroundColor = ConsoleColor.Black : Console.ForegroundColor = ConsoleColor.White
+        Console.ResetColor()
     End Sub
     Function IsBinaryEXE(ExeData)
         Dim InputData = Encoding.UTF8.GetString(ExeData).ToLower()
@@ -122,7 +122,7 @@ Module Module1
         Next
 
         If IndexOf(ExeData, ByteStr("{NUL}{NUL}")) Then
-            If InputData.Length > 170 Then
+            If InputData.Length > 700 Then
                 If InputData.Substring(0, 2) = "mz" Then
                     Return True
                 End If
@@ -132,23 +132,20 @@ Module Module1
     End Function
 
     Function IsNET(ExeData) As Object()
-        Dim InputData = Encoding.UTF8.GetString(ExeData).ToLower()
-        Dim TextSigns = "system.,#guid,#blob,#strings"
         Dim FileProjectType = "BIN"
 
-        For Each Sign In TextSigns.Split(","c)
-            If Not InputData.Contains(Sign) Then
-                Return {False, "NATIVE", FileProjectType}
-            End If
-        Next
+        If Not (Convert.ToChar(ExeData(364)) = "H"c And
+                Convert.ToChar(ExeData(182)) = "@"c) Then
+            Return {False, "NATIVE", FileProjectType}
+        End If
 
         '_CorExeMain - EXE; _CorDllMain - DLL
         Dim BinToLower = ToLowerInBinary(ExeData)
         If IndexOf(BinToLower, ByteStr("{NUL}mscoree.dll")) OrElse
            IndexOf(BinToLower, ByteStr("{NUL}mscorlib.dll")) Then
 
-            If IndexOf(ExeData, ByteStr("{NUL}_CorDllMain{NUL}")) Then FileProjectType = "DLL" ' .NET dll
-            If IndexOf(ExeData, ByteStr("{NUL}_CorExe")) Then FileProjectType = "EXE" ' .NET exe
+            If IndexOf(ExeData, ByteStr("{NUL}_CorDllMain")) Then FileProjectType = "DLL" ' .NET dll
+            If IndexOf(ExeData, ByteStr("{NUL}_CorExeMain")) Then FileProjectType = "EXE" ' .NET exe
 
             If Not FileProjectType = "BIN" Then
                 If IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic{NUL}")) AndAlso
