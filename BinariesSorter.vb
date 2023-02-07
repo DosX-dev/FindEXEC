@@ -2,108 +2,35 @@
 ' Coded by https://github.com/DosX-dev
 ' Telegram: @DosX_Plus
 
-Imports System.Diagnostics.Eventing.Reader
 Imports System.IO
-Imports System.Security.Cryptography
+Imports System.Runtime.InteropServices
 Imports System.Text
 Imports System.Threading
 
 Module Module1
-    Dim Dirs As Object() = {"exec-sorted\NET\VB_NET\DLL",
-                            "exec-sorted\NET\C#_or_IL\DLL",
-                            "exec-sorted\NET\Delphi\DLL",
-                            "exec-sorted\NET\JScript\DLL"}
-    Dim ConsoleTitleDefault = Console.Title
 
-    Sub Main()
-        Dim _Main = New Thread(AddressOf LetsWork) : _Main.Start()
+    ' ========================
+    Const STD_OUTPUT_HANDLE As Integer = -11
+    Const ENABLE_VIRTUAL_TERMINAL_PROCESSING As UInteger = 4
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Function GetStdHandle(ByVal nStdHandle As Integer) As IntPtr
+    End Function
+    <DllImport("kernel32.dll")>
+    Private Function GetConsoleMode(ByVal hConsoleHandle As IntPtr, <Out> ByRef lpMode As UInteger) As Boolean
+    End Function
+    <DllImport("kernel32.dll")>
+    Private Function SetConsoleMode(ByVal hConsoleHandle As IntPtr, ByVal dwMode As UInteger) As Boolean
+    End Function
+    Const _UnderLine As String = ChrW(27) & "[4m" ' Underline text format
+    Const _ResetUnderLine As String = ChrW(27) & "[0m" ' Underline reset
+    Sub UpgradeConsole()
+        Dim ConFormatHandle = GetStdHandle(STD_OUTPUT_HANDLE)
+        Dim ConMode As UInteger
+        GetConsoleMode(ConFormatHandle, ConMode)
+        ConMode = ConMode Or ENABLE_VIRTUAL_TERMINAL_PROCESSING
+        SetConsoleMode(ConFormatHandle, ConMode)
     End Sub
-
-    Sub LetsWork()
-        ClrOut("
-                                  _ 
-  _______    _                   |_|   _______   _       _   _______   ________
- |_|_|_|_|  |_|   ______      ___|_|  |_|_|_|_| |_|_   _|_| |_|_|_|_| /_|_|_|_/
- |_|____     _   |_|_|_|\   _/_|_|_|  |_|____     |_|_|_|   |_|____   |_|
- |_|_|_|    |_|  |_|   |_| |_|   |_|  |_|_|_|      _|_|_    |_|_|_|   |_|
- |_|        |_|  |_|   |_| |_|___|_|  |_|______  _|_| |_|_  |_|______ |_|_____
- |_|        |_|  |_|   |_|   \_|_|_|  |_|_|_|_| |_|     |_| |_|_|_|_| \_|_|_|_\
-", ConsoleColor.Black, ConsoleColor.Cyan, True)
-        ClrOut(" [?] GitHub of FindEXEC: ", ConsoleColor.Black, ConsoleColor.Gray, False)
-        ClrOut("https://github.com/DosX-dev/FindEXEC", ConsoleColor.Black, ConsoleColor.Blue, True)
-
-        Console.WriteLine($" [!] Output directory: \exec-sorted\")
-        Console.WriteLine()
-
-        For Each _CurDir In Dirs
-            If Not Directory.Exists(_CurDir) Then Directory.CreateDirectory(_CurDir)
-        Next
-        Dim Counter = 0
-        Dim GlobalCounter = 0
-        Dim Files = Directory.GetFiles(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName))
-        For Each CurFile In Files
-            GlobalCounter += 1
-            If Not CurFile = Process.GetCurrentProcess().MainModule.FileName Then
-                Dim ExeData = File.ReadAllBytes(CurFile)
-                Try
-                    If IsBinaryEXE(ExeData) Then
-                        Counter += 1
-                        Dim FileName = Path.GetFileName(CurFile)
-                        Dim Prefix = $"[{Int(GlobalCounter / Files.Length * 100)}%][{GlobalCounter}/{Files.Length}]"
-
-                        Dim FileSize = {ExeData.Length \ 1024, "Kb"}
-
-                        If FileSize(0) > 1023 Then
-                            FileSize(0) \= 1024
-                            FileSize(1) = "Mb"
-                        End If
-
-                        Console.Title = $"{Prefix} FindEXEC [{FileName}] [{FileSize(0)} {FileSize(1)}]"
-                        Dim NET_Info = IsNET(ExeData)
-                        If NET_Info(0) Then
-                            If NET_Info(2) = "EXE" Then
-                                Dim PathToSave = $"exec-sorted\NET\{NET_Info(1)}\{FileName}"
-                                If Not File.Exists(PathToSave) Then
-                                    File.Copy(CurFile, PathToSave)
-                                End If
-                            Else
-                                Dim PathToSave = $"exec-sorted\NET\{NET_Info(1)}\DLL\{FileName}"
-                                If Not File.Exists(PathToSave) Then
-                                    File.Copy(CurFile, PathToSave)
-                                End If
-                            End If
-                            ProcessLog(Prefix, FileName, ".NET", NET_Info(1).Replace("_", " "), True, NET_Info(2))
-                        Else
-                            Dim NativeInfo = GuessNativeRuntime(ExeData)
-                            Dim PathToSave = $"exec-sorted\{IIf(NativeInfo IsNot "??", NativeInfo, "Unknown")}_{FileName}"
-                            If Not File.Exists(PathToSave) Then
-                                File.Copy(CurFile, PathToSave)
-                            End If
-                            ProcessLog(Prefix, FileName, "NATIVE", NativeInfo, False, NET_Info(2))
-                        End If
-                    End If
-                Catch Exc As Exception
-                    MsgBox(Exc.Message)
-                End Try
-            End If
-        Next
-        Console.Title = ConsoleTitleDefault
-        Console.WriteLine()
-        ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, False)
-        ClrOut(" Files sorted! Press any key to exit... ", ConsoleColor.DarkGreen, ConsoleColor.White, False)
-        ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, True)
-        Console.ReadKey()
-    End Sub
-
-    Sub ProcessLog(Prefix As String, FileName As String, Platform As String, Language As String, Detected As Boolean, FileProjectType As String)
-        ClrOut($"{Prefix}", ConsoleColor.Black, ConsoleColor.DarkGray, False)
-        ClrOut($" [{FileProjectType}] ", ConsoleColor.Black, ConsoleColor.Gray, False)
-        ClrOut($"{FileName}", ConsoleColor.Black, ConsoleColor.DarkGray, False)
-        Console.Write(" => ")
-        ClrOut($"{Language} ", ConsoleColor.Black, ConsoleColor.Yellow, False)
-        ClrOut($"({Platform})", ConsoleColor.Black, IIf(Detected, ConsoleColor.Green, ConsoleColor.Red), True)
-    End Sub
-    Sub ClrOut(Text As String, Color1 As ConsoleColor, Color2 As ConsoleColor, NewLine As Boolean)
+    Sub ClrOut(Text As String, Color1 As ConsoleColor, Color2 As ConsoleColor, NewLine As Boolean) ' Custom colored output
         Console.BackgroundColor = Color1 : Console.ForegroundColor = Color2
         If NewLine Then
             Console.WriteLine(Text)
@@ -112,18 +39,200 @@ Module Module1
         End If
         Console.ResetColor()
     End Sub
-    Function IsBinaryEXE(ExeData)
+    Sub EndOfColoredText() ' Console window resizing fix
+        ClrOut(".", Console.BackgroundColor, Console.BackgroundColor, True)
+    End Sub
+
+    Sub RemoveLastText(_Lenght)
+        Try
+            Console.Write(Space(10))
+            Dim Len = Console.CursorLeft - _Lenght - 10
+            Console.SetCursorPosition(Len, Console.CursorTop)
+            Console.Write(Space(Len)) ' Remove {StartupText}
+            Console.SetCursorPosition(Len, Console.CursorTop)
+        Catch ex As Exception : End Try
+    End Sub
+    ' ========================
+
+    ReadOnly InfoBorder = $" +----------------------------+{vbCrLf} %TEXT%{vbCrLf} +----------------------------+"
+    Dim Dirs As String() = {"exec-sorted\NET\DLL"},
+        ConsoleTitleDefault As String = Console.Title,
+        NETStat As Integer = 0, NATIVEStat As Integer = 0, EXECount As Integer = 0,
+        SelectedDirectory As String,
+        IsEnd As Boolean = False ' Indicates whether the program has completed it's work
+    Sub Main()
+        UpgradeConsole()
+        ClrOut("
+                                  _
+  _______    _                   |_|   _______   _       _   _______   ________
+ |_|_|_|_|  |_|   ______      ___|_|  |_|_|_|_| |_|_   _|_| |_|_|_|_| /_|_|_|_/
+ |_|____     _   |_|_|_|\   _/_|_|_|  |_|____     |_|_|_|   |_|____   |_|
+ |_|_|_|    |_|  |_|   |_| |_|   |_|  |_|_|_|      _|_|_    |_|_|_|   |_|
+ |_|        |_|  |_|   |_| |_|___|_|  |_|______  _|_| |_|_  |_|______ |_|_____
+ |_|        |_|  |_|   |_|   \_|_|_|  |_|_|_|_| |_|     |_| |_|_|_|_| \_|_|_|_\
+", ConsoleColor.Black, ConsoleColor.Cyan, True)
+        ClrOut(" [?] GitHub of FindEXEC: ", ConsoleColor.Black, ConsoleColor.Gray, False)
+        ClrOut($"{_UnderLine}https://github.com/DosX-dev/FindEXEC{_ResetUnderLine}", ConsoleColor.Black, ConsoleColor.Blue, False) : EndOfColoredText()
+
+        Dim StartupText = " [~] Select a directory... "
+        ClrOut(StartupText, ConsoleColor.Black, ConsoleColor.Yellow, False)
+
+        Dim SelectDirectory = New Windows.Forms.FolderBrowserDialog
+        SelectDirectory.Description = "Select a folder for sorting binary files."
+        SelectDirectory.SelectedPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) ' Default directory
+
+        If SelectDirectory.ShowDialog() = Windows.Forms.DialogResult.OK Then
+            NETStat = 0 : NATIVEStat = 0 : EXECount = 0
+            Dim _Main = New Thread(AddressOf LetsWork) : _Main.Start(SelectDirectory.SelectedPath) ' Let's work!
+        Else
+            ClrOut("Abort", ConsoleColor.Black, ConsoleColor.Red, True)
+            End
+        End If
+
+        Dim CurTaskLength = StartupText.Length
+        RemoveLastText(StartupText.Length)
+
+        Do
+            Dim StatCommand = Console.ReadKey(True)
+            If IsEnd Then
+                End
+            Else
+                Console.Write(Space(70))
+                RemoveLastText(70)
+                If Not Console.CursorLeft > 0 Then
+                    Select Case StatCommand.Key
+                        Case ConsoleKey.H ' Help
+                            ClrOut(InfoBorder.Replace("%TEXT%", "{H} - Help | {S} - Statistics"),
+                                    ConsoleColor.Black,
+                                   ConsoleColor.Gray, True)
+                        Case ConsoleKey.S ' Statistics
+                            ClrOut(InfoBorder.Replace("%TEXT%", $"PE files detected => {EXECount & vbCrLf} | NATIVE => {NATIVEStat & vbCrLf} | NET => {NETStat}"),
+                                   ConsoleColor.Black,
+                                   ConsoleColor.Gray, True)
+                    End Select
+
+                End If
+            End If
+        Loop
+    End Sub
+    Sub LetsWork(DirectoryPath)
+        SelectedDirectory = DirectoryPath
+
+        Console.Write($" [!] Output directory: ")
+        ClrOut($"{SelectedDirectory}\{_UnderLine}exec-sorted{_ResetUnderLine}", ConsoleColor.Black, ConsoleColor.White, False) : EndOfColoredText()
+        Console.WriteLine()
+
+        For Each _CurDir In Dirs
+            If Not Directory.Exists($"{SelectedDirectory}\{_CurDir}") Then
+                Directory.CreateDirectory($"{SelectedDirectory}\{_CurDir}")
+            End If
+        Next
+
+        Dim Counter = 0,
+            GlobalCounter = 0,
+            Files = Directory.GetFiles(SelectedDirectory)
+
+        For Each CurFile In Files
+            GlobalCounter += 1
+            If Not CurFile = Process.GetCurrentProcess().MainModule.FileName Then
+                Dim ExeData = File.ReadAllBytes(CurFile),
+                    Prefix = $"[{Int(GlobalCounter / Files.Length * 100)}%][{GlobalCounter}/{Files.Length}]",
+                    FileName = Path.GetFileName(CurFile),
+                    FileSize = {ExeData.Length \ 1024, "Kb"}
+
+                Try
+
+                    Dim ProcText = {" Analyzing ", FileName, "...", "."}
+                    ClrOut(ProcText(0), ConsoleColor.DarkGray, ConsoleColor.White, False)
+                    ClrOut((_UnderLine & ProcText(1) & _ResetUnderLine), ConsoleColor.DarkGray, ConsoleColor.Gray, False)
+                    ClrOut(ProcText(2), ConsoleColor.DarkGray, ConsoleColor.White, False)
+                    ClrOut(ProcText(3), Console.BackgroundColor, Console.BackgroundColor, False)
+                    RemoveLastText(ProcText(0).Length + ProcText(1).Length + ProcText(2).Length + ProcText(3).Length)
+
+                    If IsBinaryEXE(ExeData) Then
+                        Counter += 1
+
+                        If FileSize(0) > 1023 Then
+                            FileSize = {FileSize(0) \ 1024, "Mb"}
+                        End If
+
+                        Console.Title = $"{Prefix} FindEXEC [{FileName}] [{FileSize(0)} {FileSize(1)}]"
+                        Dim NET_Info = IsNET(ExeData)
+                        If NET_Info(0) Then
+                            If NET_Info(2) = "EXE" Then
+                                Dim PathToSave = $"{SelectedDirectory}\exec-sorted\NET\{NET_Info(1)}_{FileName}"
+                                If Not File.Exists(PathToSave) Then
+                                    File.Copy(CurFile, PathToSave)
+                                End If
+                            Else
+                                Dim PathToSave = $"{SelectedDirectory}\exec-sorted\NET\DLL\{NET_Info(1)}_{FileName}"
+                                If Not File.Exists(PathToSave) Then
+                                    File.Copy(CurFile, PathToSave)
+                                End If
+                            End If
+                            ProcessLog(Prefix, FileName, ".NET", NET_Info(1).Replace("_", " "), True, NET_Info(2), IsIncludesPDB(ExeData))
+                            NETStat += 1
+                        Else
+
+                            Dim NativeInfo = GuessNativeRuntime(ExeData),
+                                PathToSave = $"{SelectedDirectory}\exec-sorted\{IIf(NativeInfo IsNot "??", NativeInfo, "Unknown")}_{FileName}"
+
+                            If Not File.Exists(PathToSave) Then
+                                File.Copy(CurFile, PathToSave)
+                            End If
+                            ProcessLog(Prefix, FileName, "NATIVE", NativeInfo, False, NET_Info(2), IsIncludesPDB(ExeData))
+                            NATIVEStat += 1
+                        End If
+                        EXECount += 1
+                    Else ' If file is not binary
+
+                    End If
+                Catch Exc As Exception
+                    ClrOut($"Exception occurred: {_UnderLine & Exc.Message & _ResetUnderLine}", ConsoleColor.Black, ConsoleColor.Red, False) : EndOfColoredText()
+                End Try
+            End If
+        Next
+        Console.Title = ConsoleTitleDefault
+        Console.WriteLine()
+        ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, False)
+        ClrOut(" Files sorted! Press any key to exit... ", ConsoleColor.DarkGreen, ConsoleColor.White, False)
+        ClrOut(" - - - ", ConsoleColor.Black, ConsoleColor.Yellow, True)
+
+        IsEnd = True
+    End Sub
+
+    Sub ProcessLog(Prefix As String, FileName As String, Platform As String, Language As String, Detected As Boolean, FileProjectType As String, Optional PDB As Boolean = False)
+        ClrOut($"{Prefix}", ConsoleColor.Black, ConsoleColor.DarkGray, False)
+        ClrOut($" [{FileProjectType}] ", ConsoleColor.Black, ConsoleColor.Gray, False)
+        ClrOut($"{FileName}", ConsoleColor.Black, ConsoleColor.DarkGray, False)
+        Console.Write(" => ")
+        ClrOut($"{Language} ", ConsoleColor.Black, ConsoleColor.Yellow, False)
+        ClrOut($"({Platform})", ConsoleColor.Black, IIf(Detected, ConsoleColor.Green, ConsoleColor.Red), False)
+        If PDB Then
+            ClrOut(" {PDB}", ConsoleColor.Black, ConsoleColor.DarkGray, False)
+        End If
+        Console.WriteLine()
+    End Sub
+    Function IsIncludesPDB(ExeData)
         Dim InputData = Encoding.UTF8.GetString(ExeData).ToLower()
-        Dim TextSigns = ".dll,pe" ' OLD "�!�l"
+        If InputData.Contains(".pdb") Then
+            Return True
+        End If
+        Return False
+    End Function
+    Function IsBinaryEXE(ExeData)
+        Dim InputData = Encoding.UTF8.GetString(ExeData),
+            TextSigns = ".dll,pe"
+
         For Each Sign In TextSigns.Split(","c)
-            If Not InputData.Contains(Sign) Then
+            If Not InputData.ToLower().Contains(Sign) Then
                 Return False
             End If
         Next
 
-        If IndexOf(ExeData, ByteStr("{NUL}{NUL}")) Then
+        If IndexOf(ExeData, {0, 3, 0}) = 3 Then ' Checking for "\x{00}\x{03}\x{00}"
             If InputData.Length > 700 Then
-                If InputData.Substring(0, 2) = "mz" Then
+                If InputData.Substring(0, 2) = "MZ" Then ' Detect for DOS prefix
                     Return True
                 End If
             End If
@@ -134,28 +243,35 @@ Module Module1
     Function IsNET(ExeData) As Object()
         Dim FileProjectType = "BIN"
 
-        If Not (Convert.ToChar(ExeData(364)) = "H"c And
-                Convert.ToChar(ExeData(182)) = "@"c) Then
+        ' <BEGIN>\x{00}\x{00}PE\x{00}\x{00}<..ENTROPY (~238)..>H
+        Dim HeaderShift = IndexOf(ExeData, ByteStr("{NUL}{NUL}PE{NUL}{NUL}")) ' Offset of 'PE' section; Skip [e_lfanew]
+        If Not (Convert.ToChar(ExeData(HeaderShift + 238)) = "H"c AndAlso
+                Convert.ToChar(ExeData(HeaderShift + 263)) = " "c AndAlso
+                               ExeData(HeaderShift + 239) = 0 AndAlso
+                               ExeData(HeaderShift + 249) = 0) Then
             Return {False, "NATIVE", FileProjectType}
         End If
+        ' Legacy second char - Convert.ToChar(ExeData(HeaderShift + 96)) = "@"c
 
         '_CorExeMain - EXE; _CorDllMain - DLL
         Dim BinToLower = ToLowerInBinary(ExeData)
-        If IndexOf(BinToLower, ByteStr("{NUL}mscoree.dll")) OrElse
-           IndexOf(BinToLower, ByteStr("{NUL}mscorlib.dll")) Then
+        If (IndexOf(BinToLower, ByteStr("{NUL}mscoree.dll")) OrElse
+            IndexOf(BinToLower, ByteStr("{NUL}mscorlib.dll"))) AndAlso (IndexOf(ExeData, ByteStr("{NUL}System."))) Then
 
-            If IndexOf(ExeData, ByteStr("{NUL}_CorDllMain")) Then FileProjectType = "DLL" ' .NET dll
-            If IndexOf(ExeData, ByteStr("{NUL}_CorExeMain")) Then FileProjectType = "EXE" ' .NET exe
+            If IndexOf(ExeData, ByteStr("{NUL}_CorExeMain")) Then
+                FileProjectType = "EXE" ' .NET exe
+            ElseIf IndexOf(ExeData, ByteStr("{NUL}_CorDllMain")) Then : FileProjectType = "DLL" ' .NET dll
+            End If
 
             If Not FileProjectType = "BIN" Then
                 If IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic{NUL}")) AndAlso
                    IndexOf(ExeData, ByteStr("{NUL}Microsoft.VisualBasic.CompilerServices{NUL}")) Then
                     Return {True, "VB_NET", FileProjectType}
-                ElseIf IndexOf(ExeData, ByteStr("{NUL}Borland.")) Then
-                    Return {True, "Delphi", FileProjectType}
                 ElseIf IndexOf(ExeData, ByteStr("{NUL}Microsoft.JScript{NUL}")) AndAlso
                        IndexOf(ExeData, ByteStr("{NUL}Microsoft.JScript.Vsa{NUL}")) Then
                     Return {True, "JScript", FileProjectType}
+                ElseIf IndexOf(ExeData, ByteStr("{NUL}Borland.")) Then
+                    Return {True, "Delphi", FileProjectType}
                 Else
                     Return {True, "C#_or_IL", FileProjectType}
                 End If
@@ -182,15 +298,16 @@ Module Module1
     Function ToLowerInBinary(ExeData) ' Change registry of all chars in Byte() to lower
         Dim ChangedData = ExeData
         For Each CurStr In "QWERTYUIOPASDFGHJKLZXCVBNM"
-            ChangedData = ReplaceBytes(ChangedData, ByteStr(CurStr.ToString), ByteStr(CustomToLower(CurStr.ToString)))
+            ChangedData = ReplaceBytes(ChangedData, Encoding.UTF8.GetBytes(CurStr.ToString), Encoding.UTF8.GetBytes(CustomToLower(CurStr.ToString)))
         Next
         Return ChangedData
     End Function
 
     Function CustomToLower(InputData) ' Analog of ToLower() but faster (Only for ENG)
-        Dim Result = InputData
-        Dim UPP = "QWERTYUIOPASDFGHJKLZXCVBNM"
-        Dim DWN = "qwertyuiopasdfghjklzxcvbnm"
+        Dim Result = InputData,
+            UPP = "QWERTYUIOPASDFGHJKLZXCVBNM",
+            DWN = "qwertyuiopasdfghjklzxcvbnm"
+
         For IndexToReplace = 0 To (UPP.Length - 1)
             Result = Result.Replace(UPP(IndexToReplace), DWN(IndexToReplace))
         Next
@@ -210,21 +327,21 @@ Module Module1
             Next
             Return "??"
         Catch ex As Exception
-            MsgBox(ex.Message)
+            MsgBox(ex.Message, 16)
         End Try
-
     End Function
 
-    Function ByteStr(InputStr As String) As Byte() ' {NUL}  ==>  \d{00}
+    Function ByteStr(InputStr As String) As Byte() ' {NUL}  ==>  \x{00}
         Return ReplaceBytes(Encoding.ASCII.GetBytes(InputStr), Encoding.ASCII.GetBytes("{NUL}"), {CByte(0)})
     End Function
     Public Function ReplaceBytes(DataToChange As Byte(), ToFind As Byte(), ToReplace As Byte()) As Byte()
-        Dim MatchStart As Integer = -1
-        Dim MatchLength As Integer = 0
+        Dim MatchStart As Integer = -1,
+            MatchLength As Integer = 0
+
         Using MemWorker = New IO.MemoryStream
-            For index = 0 To DataToChange.Length - 1
-                If DataToChange(index) = ToFind(MatchLength) Then
-                    If MatchLength = 0 Then MatchStart = index
+            For Index = 0 To DataToChange.Length - 1
+                If DataToChange(Index) = ToFind(MatchLength) Then
+                    If MatchLength = 0 Then MatchStart = Index
                     MatchLength += 1
                     If MatchLength = ToFind.Length Then
                         MemWorker.Write(ToReplace, 0, ToReplace.Length)
@@ -235,7 +352,7 @@ Module Module1
                         MemWorker.Write(DataToChange, MatchStart, MatchLength)
                         MatchLength = 0
                     End If
-                    MemWorker.WriteByte(DataToChange(index))
+                    MemWorker.WriteByte(DataToChange(Index))
                 End If
             Next
             If MatchLength > 0 Then
@@ -249,18 +366,14 @@ Module Module1
     End Function
     Public Function IndexOf(ByVal ArrayToSearchThrough As Byte(), ByVal PatternToFind As Byte()) As Integer
         If PatternToFind.Length > ArrayToSearchThrough.Length Then Return -1
-
         For Arr As Integer = 0 To ArrayToSearchThrough.Length - PatternToFind.Length - 1
             Dim Found As Boolean = True
-
-            For Searcher As Integer = 0 To PatternToFind.Length - 1
-
+            For Searcher As Integer = 0 To (PatternToFind.Length - 1)
                 If ArrayToSearchThrough(Arr + Searcher) <> PatternToFind(Searcher) Then
                     Found = False
                     Exit For
                 End If
             Next
-
             If Found Then
                 Return Arr
             End If
