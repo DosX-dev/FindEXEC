@@ -1,6 +1,6 @@
 ' MADE WITH <3 BY DOSX
 ' Coded by https://github.com/DosX-dev
-' Telegram: @DosX_Plus
+' Telegram: @DosX_dev
 
 Imports System.IO
 Imports System.Runtime.InteropServices
