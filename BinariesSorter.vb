@@ -2,6 +2,8 @@
 '' Coded by DosX
 '' GitHub: https://github.com/DosX-dev
 
+'' Attention! This is old legacy code. It doesn't work well. And I'm too lazy to fix it. Keep in mind :(
+
 Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Text
