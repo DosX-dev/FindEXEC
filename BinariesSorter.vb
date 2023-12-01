@@ -1,6 +1,6 @@
-' MADE WITH <3 BY DOSX
-' Coded by https://github.com/DosX-dev
-' Telegram: @DosX_Plus
+'' MADE WITH <3 BY DOSX
+'' Coded by DosX
+'' GitHub: https://github.com/DosX-dev
 
 Imports System.IO
 Imports System.Runtime.InteropServices
